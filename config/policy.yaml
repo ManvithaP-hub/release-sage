@@ -1,0 +1,34 @@
+# release-sage pipeline policy.
+
+quality_gate:
+  # An item is admitted only if it touches your stack (relevance) and matters.
+  min_substance: 50          # = relevance; below this it doesn't touch your stack
+  min_novelty: 40
+  drop_signal_labels: [noise]
+  uncorroborated_max_signal: security_review
+
+  # A briefing publishes only if there's something to act on.
+  # Otherwise: "nothing needs your attention" — the whole point.
+  min_items: 1
+  min_top_substance: 60
+  min_total_information: 60
+
+scoring:
+  substance:
+    "90": "Security advisory or release for a component you run, with version detail."
+    "60": "Release touching your stack."
+    "0": "Does not touch any component in your inventory."
+  hype_risk:
+    "10": "Primary release/advisory feed; factual."
+
+signal_labels: [patch_now, security_review, upgrade_planning, routine_update, noise]
+categories: [security, breaking_change, release]
+audiences: [platform_sre, devops, security]
+
+threading:
+  similarity_threshold: 0.40
+  history_days: 30
+
+angles:
+  max_similarity_to_history: 0.60
+  per_briefing_max: 0    # ops tool: no social hooks. Disabled.

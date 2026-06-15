@@ -1,0 +1,4 @@
+feedparser>=6.0
+PyYAML>=6.0
+anthropic>=0.40        # optional at runtime: heuristic mode runs without it
+kubernetes>=30.0        # for the discover command (live cluster inventory)

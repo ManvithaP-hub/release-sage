@@ -1,0 +1,34 @@
+# release-sage inventory: what you actually run.
+# Set `version` to the version you're currently on. Releases newer than this
+# get flagged; the version gap drives upgrade-vs-patch framing.
+#
+# NOTE: these are example current-ish versions. Replace them with the exact
+# versions running on YOUR clusters for the tool to be meaningful.
+
+components:
+  - id: keda
+    name: KEDA
+    repo: kedacore/keda
+    version: "2.19.0"
+    purpose: event-driven autoscaling
+  - id: argocd
+    name: Argo CD
+    repo: argoproj/argo-cd
+    version: "3.3.0"
+    purpose: gitops delivery
+  - id: external-secrets
+    name: External Secrets Operator
+    repo: external-secrets/external-secrets
+    version: "0.20.0"
+    purpose: secret sync
+  - id: kyverno
+    name: Kyverno
+    repo: kyverno/kyverno
+    version: "1.15.0"
+    purpose: policy enforcement
+
+platforms:
+  - id: eks
+    name: Amazon EKS
+    version: "1.30"
+    purpose: managed kubernetes

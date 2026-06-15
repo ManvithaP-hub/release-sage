@@ -1,0 +1,62 @@
+# release-sage on Kubernetes — 2-hour briefing cadence as a CronJob.
+#
+# Build the image from the Dockerfile in this repo, push to ECR, set the
+# image below, and create the anthropic-api-key secret:
+#   kubectl create secret generic releasesage --from-literal=ANTHROPIC_API_KEY=...
+#
+# State: this manifest uses a PVC for the SQLite db. For multi-replica or
+# durability, swap store.py for Postgres/RDS and drop the volume.
+#
+# If you prefer KEDA over a plain CronJob (e.g. to also trigger on-demand runs
+# from an SQS queue), a ScaledJob with a cron scaler is a drop-in: the
+# container and env are identical.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: releasesage-data
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: releasesage
+spec:
+  schedule: "0 */2 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 5
+  failedJobsHistoryLimit: 5
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 900
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+          containers:
+            - name: releasesage
+              image: <ACCOUNT>.dkr.ecr.us-east-1.amazonaws.com/release-sage:0.1.0
+              args: ["run", "--db", "/data/releasesage.db", "--out", "/data/out"]
+              envFrom:
+                - secretRef:
+                    name: releasesage
+              resources:
+                requests: {cpu: 100m, memory: 256Mi}
+                limits: {cpu: 500m, memory: 512Mi}
+              volumeMounts:
+                - name: data
+                  mountPath: /data
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: ["ALL"]}
+          volumes:
+            - name: data
+              persistentVolumeClaim:
+                claimName: releasesage-data

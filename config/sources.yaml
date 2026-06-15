@@ -1,0 +1,66 @@
+# release-sage source registry.
+# kind: github_releases | github_security | rss | k8s_changelog | html
+# component: links a source to an inventory component id (or "*" cross-cutting)
+
+sources:
+  # ---- component release feeds ----
+  - id: keda-releases
+    name: KEDA Releases
+    url: https://github.com/kedacore/keda/releases
+    feed: https://github.com/kedacore/keda/releases.atom
+    kind: github_releases
+    tier: primary
+    component: keda
+  - id: argocd-releases
+    name: Argo CD Releases
+    url: https://github.com/argoproj/argo-cd/releases
+    feed: https://github.com/argoproj/argo-cd/releases.atom
+    kind: github_releases
+    tier: primary
+    component: argocd
+  - id: eso-releases
+    name: External Secrets Releases
+    url: https://github.com/external-secrets/external-secrets/releases
+    feed: https://github.com/external-secrets/external-secrets/releases.atom
+    kind: github_releases
+    tier: primary
+    component: external-secrets
+  - id: kyverno-releases
+    name: Kyverno Releases
+    url: https://github.com/kyverno/kyverno/releases
+    feed: https://github.com/kyverno/kyverno/releases.atom
+    kind: github_releases
+    tier: primary
+    component: kyverno
+
+  # ---- security advisory feeds (per component) ----
+  - id: keda-ghsa
+    name: KEDA Security Advisories
+    url: https://github.com/kedacore/keda/security/advisories
+    feed: https://github.com/kedacore/keda/security/advisories.atom
+    kind: github_security
+    tier: primary
+    component: keda
+  - id: argocd-ghsa
+    name: Argo CD Security Advisories
+    url: https://github.com/argoproj/argo-cd/security/advisories
+    feed: https://github.com/argoproj/argo-cd/security/advisories.atom
+    kind: github_security
+    tier: primary
+    component: argocd
+  - id: kyverno-ghsa
+    name: Kyverno Security Advisories
+    url: https://github.com/kyverno/kyverno/security/advisories
+    feed: https://github.com/kyverno/kyverno/security/advisories.atom
+    kind: github_security
+    tier: primary
+    component: kyverno
+
+  # ---- platform / cross-cutting ----
+  - id: k8s-changelog
+    name: Kubernetes Releases
+    url: https://github.com/kubernetes/kubernetes/releases
+    feed: https://github.com/kubernetes/kubernetes/releases.atom
+    kind: k8s_changelog
+    tier: primary
+    component: eks

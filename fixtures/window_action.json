@@ -1,0 +1,26 @@
+{
+  "argocd-ghsa": [
+    {"title": "GHSA-xxxx: Argo CD path traversal allows reading arbitrary files (CVE-2026-12345)",
+     "url": "https://github.com/argoproj/argo-cd/security/advisories/GHSA-xxxx",
+     "summary": "A high severity vulnerability (CVSS 8.1) in Argo CD versions before 2.11.5 allows an authenticated user to read arbitrary files on the repo-server via path traversal. Patched in 2.11.5. Critical for multi-tenant installs.",
+     "published": "2026-06-02T07:00:00Z"}
+  ],
+  "keda-releases": [
+    {"title": "KEDA v2.22.0 - breaking change to ScaledObject API",
+     "url": "https://github.com/kedacore/keda/releases/tag/v2.16.0",
+     "summary": "This release removes the deprecated v1alpha1 ScaledObject fields. Breaking change: you must migrate manifests before upgrading. Action required for clusters on 2.19 and earlier.",
+     "published": "2026-06-02T06:30:00Z"}
+  ],
+  "k8s-changelog": [
+    {"title": "Kubernetes 1.33 released; 1.30 enters end of support window",
+     "url": "https://github.com/kubernetes/kubernetes/releases/tag/v1.33.0",
+     "summary": "Kubernetes 1.33 is available. Note: 1.30 will reach end of standard support; EKS clusters on 1.30 should plan an upgrade. Several beta APIs deprecated.",
+     "published": "2026-06-02T05:00:00Z"}
+  ],
+  "kyverno-releases": [
+    {"title": "Helm chart cert-manager v1.15 released",
+     "url": "https://github.com/cert-manager/cert-manager/releases/tag/v1.15.0",
+     "summary": "Routine release of cert-manager, a component you do not run.",
+     "published": "2026-06-02T04:00:00Z"}
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "keda-releases": [
+    {"title": "KEDA v2.14.0", "url": "https://github.com/kedacore/keda/releases/tag/v2.14.0",
+     "summary": "Maintenance release. You are already running this version. Minor docs updates and dependency bumps.",
+     "published": "2026-06-01T08:00:00Z"}
+  ],
+  "argocd-releases": [
+    {"title": "Argo CD v2.11.3", "url": "https://github.com/argoproj/argo-cd/releases/tag/v2.11.3",
+     "summary": "Patch release with minor UI fixes. No security content, no breaking changes.",
+     "published": "2026-06-01T09:00:00Z"}
+  ]
+}
