@@ -32,3 +32,8 @@ threading:
 angles:
   max_similarity_to_history: 0.60
   per_briefing_max: 0    # ops tool: no social hooks. Disabled.
+
+osv:
+  # Authoritative advisory lookups via osv.dev for security items.
+  # Set to false for fully offline runs (heuristic-only).
+  enabled: true

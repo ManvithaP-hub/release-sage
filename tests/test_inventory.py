@@ -11,6 +11,9 @@ from releasesage.models import RawItem, Source  # noqa: E402
 
 POLICY = yaml.safe_load((ROOT / "config" / "policy.yaml").read_text())
 INV = inv.load_inventory(str(ROOT / "config" / "inventory.yaml"))
+# Keep classifier tests offline & deterministic: OSV lookups are tested
+# separately in test_osv.py against recorded response shapes.
+POLICY["osv"] = {"enabled": False}
 
 
 def _raw(title, summary="", sid="keda-releases"):
@@ -82,3 +85,33 @@ def test_real_cve_id_triggers_security():
              "high severity path traversal, patched in 3.4.5", "argocd-ghsa"),
         _src("argocd-ghsa", "argocd", "github_security"), INV, POLICY)
     assert cls.category == "security"
+
+
+def test_osv_confirmed_affected_overrides_version_gap():
+    """OSV authoritative 'affected' must beat the semver already-covered cap."""
+    from unittest.mock import patch
+    from releasesage import osv
+    raw = _raw("GHSA-aaaa-bbbb-cccc Argo CD flaw CVE-2026-1111",
+               "affects versions before 3.3.0", "argocd-ghsa")
+    src = _src("argocd-ghsa", "argocd", "github_security")
+    pol = dict(POLICY); pol["osv"] = {"enabled": True}
+    with patch.object(osv, "assess", return_value=osv.OSVVerdict(
+            status="affected", advisory_id="CVE-2026-1111", cvss_score=8.1,
+            severity="high", fixed_version="3.3.5")):
+        c = inv.classify_release(raw, src, INV, pol)
+    assert c.signal_label == "patch_now"
+    assert c.urgency >= 80
+
+
+def test_osv_not_affected_silences_alarm():
+    """OSV 'not_affected' turns a CVE-bearing item into noise (no busywork)."""
+    from unittest.mock import patch
+    from releasesage import osv
+    raw = _raw("GHSA-aaaa-bbbb-cccc Argo CD flaw CVE-2026-1111",
+               "affects versions before 3.3.0", "argocd-ghsa")
+    src = _src("argocd-ghsa", "argocd", "github_security")
+    pol = dict(POLICY); pol["osv"] = {"enabled": True}
+    with patch.object(osv, "assess", return_value=osv.OSVVerdict(
+            status="not_affected", summary="3.3.0 not in any affected range")):
+        c = inv.classify_release(raw, src, INV, pol)
+    assert c.signal_label == "noise"

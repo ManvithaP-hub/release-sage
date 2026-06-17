@@ -89,9 +89,10 @@ def version_gap(raw: RawItem, comp: dict) -> str:
 def classify_release(raw: RawItem, source: Source, inventory: dict, policy: dict) -> Classification:
     """Domain classifier for release/advisory items (heuristic mode).
 
-    LLM mode can still be layered on later; for operational data the
-    deterministic signals (severity strings, semver, breaking markers) are
-    actually quite reliable, unlike news substance.
+    For security items we additionally consult OSV (osv.dev) for an
+    authoritative "is the version I run actually affected?" verdict, with the
+    heuristic as fallback when OSV has no data or the network is unavailable.
+    OSV use is opt-out via policy['osv']['enabled'] = false (default on).
     """
     text = f"{raw.title} {raw.summary}".lower()
     rel_score, comp_id, rel_reason = relevance(raw, source, inventory)
@@ -107,21 +108,53 @@ def classify_release(raw: RawItem, source: Source, inventory: dict, policy: dict
 
     # urgency: security severity and breaking impact, equal weight, take the max
     sec_urgency = 0
+    osv_verdict = None
+    osv_note = ""
     if is_security:
         sec_urgency = 70
         for sev, val in _SEVERITY.items():
             if sev in text:
                 sec_urgency = max(sec_urgency, val)
+        # --- authoritative OSV assessment (replaces guesswork when available) ---
+        if comp_id and policy.get("osv", {}).get("enabled", True):
+            from . import osv as osv_mod
+            osv_verdict = osv_mod.assess(comp_id, comp.get("version", ""))
+            if osv_verdict.status == "not_affected":
+                # Authoritatively safe: downgrade hard. This is the accuracy win —
+                # no "review this CVE" noise for a version that isn't affected.
+                sec_urgency = 15
+                osv_note = (f"OSV: your version {comp.get('version','?')} is NOT in any "
+                            f"known-affected range. {osv_verdict.summary}")
+            elif osv_verdict.status == "affected":
+                if osv_verdict.cvss_score is not None:
+                    sec_urgency = max(sec_urgency, int(osv_verdict.cvss_score * 10))
+                elif osv_verdict.severity:
+                    sec_urgency = max(sec_urgency, _SEVERITY.get(osv_verdict.severity, sec_urgency))
+                fixed = f" Fixed in {osv_verdict.fixed_version}." if osv_verdict.fixed_version else ""
+                osv_note = (f"OSV CONFIRMED affected: {osv_verdict.advisory_id} "
+                            f"(CVSS {osv_verdict.cvss_score or '?'}, {osv_verdict.severity or 'n/a'}).{fixed}")
+            else:
+                osv_note = f"OSV: no authoritative data; using heuristic. {osv_verdict.summary}"
+
     brk_urgency = 75 if is_breaking else 0
     urgency = max(sec_urgency, brk_urgency)
 
     gap = version_gap(raw, comp) if comp else ""
     already_covered = gap.startswith("You are on") and "not newer" in gap
-    if already_covered:
-        urgency = min(urgency, 20)  # already on this version
+    # OSV authoritative verdict overrides the semver heuristic: if OSV confirms
+    # your version is affected, it does not matter what the version-gap string
+    # guessed — you are affected.
+    osv_confirms_affected = osv_verdict is not None and osv_verdict.status == "affected"
+    if already_covered and not osv_confirms_affected:
+        urgency = min(urgency, 20)  # already on this version, and OSV didn't flag it
 
     # category / signal label in ops terms
-    if is_security:
+    osv_clears = osv_verdict is not None and osv_verdict.status == "not_affected"
+    if is_security and osv_clears:
+        # Authoritatively not affected → not actionable. This is the whole
+        # accuracy point: no "review this CVE" busywork for a safe version.
+        category, label = "security", "noise"
+    elif is_security:
         category, label = "security", "patch_now" if urgency >= 80 else "security_review"
     elif is_breaking:
         category, label = "breaking_change", "upgrade_planning"
@@ -131,8 +164,11 @@ def classify_release(raw: RawItem, source: Source, inventory: dict, policy: dict
         category, label = "release", "noise"
 
     # substance reused by the generic gate = operational relevance.
-    # A routine release you're already on, or that's not newer, is not actionable.
-    if label == "noise" or already_covered:
+    # A routine release you're already on, not newer, or OSV-cleared, is not actionable.
+    # But an OSV-confirmed vulnerability is always actionable regardless of version-gap.
+    if osv_confirms_affected:
+        substance = min(100, (rel_score or 80) + 10)
+    elif label == "noise" or already_covered:
         substance = 0
     else:
         substance = rel_score
@@ -141,7 +177,18 @@ def classify_release(raw: RawItem, source: Source, inventory: dict, policy: dict
 
     what = f"{source.name}: {raw.title}."
     why = _why(category, comp.get("name", "your stack"), gap)
+    if osv_note:
+        why = (why + " " + osv_note).strip()
     takeaway = _takeaway(label, comp.get("name", "the component"))
+
+    # Prefer the authoritative OSV note for the "verify" line when we have one.
+    if osv_note:
+        uncertainty = osv_note
+    elif is_security:
+        uncertainty = ("Confirm CVSS and affected version range in the linked advisory "
+                       "before acting.")
+    else:
+        uncertainty = ""
 
     return Classification(
         category=category, signal_label=label,
@@ -150,8 +197,7 @@ def classify_release(raw: RawItem, source: Source, inventory: dict, policy: dict
         hype_risk=10,  # primary release/advisory feeds; not vendor hype
         urgency=urgency,
         what_happened=what, why_it_matters=why, builder_takeaway=takeaway,
-        uncertainty=("Confirm CVSS and affected version range in the linked advisory "
-                     "before acting.") if is_security else "",
+        uncertainty=uncertainty,
         vendor_framed=False,
     )
 
