@@ -20,8 +20,16 @@ The novel layer is `inventory.py`: an item only clears the gate if it touches a
 component in your `config/inventory.yaml`, and **urgency is scored against the
 version you're on**, not in the abstract. A release you're already running, or a
 project you don't run, scores zero and never reaches you. Security advisories and
-breaking-change/deprecation notices are weighted equally — the two things that
+breaking-change/deprecation notices are weighted equally the two things that
 actually wake up a platform engineer.
+
+For security items it goes further: instead of guessing severity from
+keywords, it queries **OSV (osv.dev)** for the authoritative CVSS score and
+*affected version ranges*, then checks the version you actually run against
+them. The result is a precise verdict — **confirmed affected** (with the CVE,
+CVSS, and fixed version) or **not affected, you're already safe** — so you
+don't get "review this CVE" busywork for a version that was never vulnerable.
+OSV lookups degrade gracefully to the heuristic if the service is unreachable.
 
 It's built on a quality-gated pipeline (the "ALL CLEAR" verdict is the gate
 refusing to publish noise) with source-tiering, story threading, and
