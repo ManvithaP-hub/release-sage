@@ -1,5 +1,8 @@
 # release-sage
 
+[![tests](https://github.com/ManvithaP-hub/release-sage/actions/workflows/ci.yml/badge.svg)](https://github.com/ManvithaP-hub/release-sage/actions/workflows/ci.yml)
+
+
 An **inventory-aware change briefing** for your infrastructure. You declare what
 you actually run (KEDA, Argo CD, External Secrets, Kyverno, EKS version); every
 run it checks the release and security-advisory feeds for *those components only*
@@ -20,7 +23,7 @@ The novel layer is `inventory.py`: an item only clears the gate if it touches a
 component in your `config/inventory.yaml`, and **urgency is scored against the
 version you're on**, not in the abstract. A release you're already running, or a
 project you don't run, scores zero and never reaches you. Security advisories and
-breaking-change/deprecation notices are weighted equally the two things that
+breaking-change/deprecation notices are weighted equally — the two things that
 actually wake up a platform engineer.
 
 For security items it goes further: instead of guessing severity from
@@ -104,6 +107,22 @@ python -m releasesage run --inventory ~/my-cluster-inventory.yaml
 ```
 
 Output: `out/briefing_NNN.html` + `out/releasesage.db`. Tests: `python -m pytest tests/ -q`.
+
+
+## Web UI
+
+A read-only web view over the same SQLite database the pipeline writes — latest
+briefing, history, and a filterable explore view. No build step, no JS
+framework; server-rendered HTML in the same style as the briefing pages.
+
+```bash
+pip install fastapi uvicorn
+python -m releasesage.web --db out/releasesage.db
+# open http://127.0.0.1:8000
+```
+
+Routes: `/` (latest), `/history`, `/briefing/{n}`, `/explore` (filter by
+component, signal, urgency). It only reads the database — it never writes.
 
 ## Deploy (EKS)
 
